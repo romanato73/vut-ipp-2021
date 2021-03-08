@@ -13,7 +13,6 @@ require_once __DIR__ . '/src/autoload.php';
  */
 use src\Analyzer;
 use src\App;
-use src\Extensions\RegisterExtension;
 use src\Extensions\Statistics;
 use src\XMLGenerator;
 
