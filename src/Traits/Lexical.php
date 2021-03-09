@@ -77,6 +77,21 @@ trait Lexical
     }
 
     /**
+     * Check if character is interrupt character from new command (newline, space or comment)
+     *
+     * @param string $char The checked char
+     *
+     * @return bool True if is separator char otherwise false.
+     */
+    protected function isInterruptChar(string $char) : bool
+    {
+        // Check if character is newline, space or comment
+        if (in_array($char, $this->interruptTokens)) return true;
+
+        return false;
+    }
+
+    /**
      * Check if character (and next characters) are escape characters.
      *
      * @param mixed  $stream Stream of characters
@@ -120,6 +135,12 @@ trait Lexical
     {
         // Go to the end of the line
         while (!feof($stream)) {
+            // Check if next token is end of file
+            if (is_bool($this->nextChar($stream))) {
+                $this->scanEnd = true;
+                break;
+            }
+
             // Check if next token is a new line
             if ($this->isNewlineChar($this->nextChar($stream))) {
                 break;
@@ -144,8 +165,10 @@ trait Lexical
             // Push character into buffer
             array_push($buffer, $char);
 
-            // Check if next character is newline
-            if ($this->nextChar($stream) == "\n") {
+            if (is_bool($this->nextChar($stream))) $this->scanEnd = true;
+
+            // Check if next character is interrupt character
+            if ($this->scanEnd || $this->isInterruptChar($this->nextChar($stream))) {
                 // Check if header valid
                 $buffer = trim(implode('', $buffer));
 

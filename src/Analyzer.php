@@ -38,7 +38,7 @@ class Analyzer
             $char = addslashes(fgetc(STDIN));
 
             // Scan is at the end
-            if ($this->scanEnd) break;
+            if (is_bool($this->nextChar(STDIN)) || $this->scanEnd) break;
 
             try {
                 // Char is a escape character
