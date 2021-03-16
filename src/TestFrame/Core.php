@@ -123,17 +123,21 @@ class Core
         $tmpOutput = uniqid('temp_') . '.tmp';
         $tmpDiff = uniqid('temp_') . '_diff.tmp';
 
+        // Initialize files
+        file_put_contents($tmpOutput, '');
+        file_put_contents($tmpDiff, '');
+
         foreach ($this->tests as $dir => $tests) {
             foreach ($tests as $test) {
                 $output = [];
 
                 $src = $dir . '/' . $test . '.src';
-                $in = $dir . '/' . $test . '.in';
+                //$in = $dir . '/' . $test . '.in';
                 $out = $dir . '/' . $test . '.out';
                 $rc = $dir . '/' . $test . '.rc';
 
                 // Run parse.php
-                exec("php.exe {$parseScript} < {$src}", $output, $retval);
+                exec("php7.4 {$parseScript} < {$src}", $output, $retval);
 
                 // Output to string
                 $output = implode(PHP_EOL, $output);
@@ -180,6 +184,8 @@ class Core
                     'output_status' => $diffRetval == 0 ? 'passed' : 'error',
                     'expected_ret_val' => file_get_contents($rc),
                     'returned_ret_val' => $retval,
+                    'tool_name' => App::getMode('parse-only') ? 'JExamXML' : 'diff',
+                    'tool_ret_val' => $diffRetval,
                     'output' => htmlspecialchars($output),
                     'output_diff' => $output_diff,
                 ]);
@@ -193,6 +199,7 @@ class Core
 
         exec('rm -f ' . $tmpOutput);
         exec('rm -f ' . $tmpDiff);
+        exec('rm -f *.tmp.log');
     }
 
     /**

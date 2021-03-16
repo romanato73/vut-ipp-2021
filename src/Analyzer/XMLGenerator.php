@@ -47,6 +47,7 @@ class XMLGenerator
 
         // Return XML file
         echo $this->xml->saveXML();
+        echo PHP_EOL;
     }
 
     /**
