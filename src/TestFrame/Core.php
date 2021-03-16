@@ -117,6 +117,8 @@ class Core
     private function runParseTest()
     {
         // Initialize variables
+        $passed = 0;
+        $failed = 0;
         $parseScript = $this->getPathArgument('parse-script');
         $jexamXmlJar = $this->getPathArgument('jexamxml');
         $jexamXmlCfg = $this->getPathArgument('jexamcfg');
@@ -168,14 +170,15 @@ class Core
                     $output_diff = htmlspecialchars(implode(PHP_EOL, $diffOutput));
                 }
 
-                $state = $retval == file_get_contents($rc) && $diffRetval == 0 ? 'OK' : 'FAILED';
-                $stateColor = $state == 'OK' ? 'text-success' : 'text-danger';
+                $state = $retval == file_get_contents($rc) && $diffRetval == 0;
+
+                $state ? $passed++ : $failed++;
 
                 // Generate HTML
                 $this->generator->generateRow([
                     'id' => uniqid('test-'),
-                    'state' => $state,
-                    'state_color' => $stateColor,
+                    'state' => $state ? 'OK' : 'FAILED',
+                    'state_color' => $state ? 'text-success' : 'text-danger',
                     'dir' => $dir,
                     'test_name' => $test,
                     'ret_val_color' => $retval == file_get_contents($rc) ? 'text-success' : 'text-danger',
@@ -196,6 +199,8 @@ class Core
                 unset($diffOutput);
             }
         }
+
+        $this->generator->generateProgress($passed, $failed);
 
         exec('rm -f ' . $tmpOutput);
         exec('rm -f ' . $tmpDiff);

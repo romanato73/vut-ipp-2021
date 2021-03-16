@@ -67,4 +67,23 @@ class HTMLGenerator
 
         $this->output .= $template;
     }
+
+    /**
+     * Generate progress bar.
+     *
+     * @param int $passed Counted passed tests.
+     * @param int $failed Counted failed tests.
+     */
+    public function generateProgress(int $passed, int $failed)
+    {
+        $all = $passed + $failed;
+        $calc = ($passed / $all) * 100;
+
+        // Update tests counter
+        $this->output = str_replace('{passed}', "{$passed}", $this->output);
+        $this->output = str_replace('{tests_counter}', "{$all}", $this->output);
+
+        // Update progress
+        $this->output = str_replace('{progress}', "{$calc}%", $this->output);
+    }
 }
