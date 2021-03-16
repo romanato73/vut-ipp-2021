@@ -4,7 +4,7 @@
 namespace src\Support;
 
 
-use src\App;
+use src\Analyzer\App;
 
 class Exception extends \Exception
 {
@@ -13,7 +13,7 @@ class Exception extends \Exception
      */
     private array $codes = [
         0 => "Program executed successfully.",
-        10 => "Program parameters error.",
+        10 => "Program arguments error.",
         11 => "Can not open input file (file does not exists or you do not have permissions).",
         12 => "Can not write into a output file (you do not have permissions or unknown error).",
         99 => "Internal error.",

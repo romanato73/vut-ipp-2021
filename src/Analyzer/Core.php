@@ -1,16 +1,16 @@
 <?php
 
 
-namespace src;
+namespace src\Analyzer;
 
 
+use src\Analyzer\Traits\Instructions;
+use src\Analyzer\Traits\Lexical;
+use src\Analyzer\Traits\Token;
 use src\Extensions\Statistics;
 use src\Support\Exception;
-use src\Traits\Instructions;
-use src\Traits\Lexical;
-use src\Traits\Token;
 
-class Analyzer
+class Core
 {
     use Instructions;
     use Token;
@@ -33,64 +33,52 @@ class Analyzer
      */
     public function lexicalAnalysis() : array
     {
-        // Loop through a file
         while (!feof(STDIN)) {
-            $char = addslashes(fgetc(STDIN));
+            // Get line
+            $line = fgets(STDIN);
 
-            // Scan is at the end
-            if (is_bool($this->nextChar(STDIN)) || $this->scanEnd) break;
+            // Remove comments
+            $line = $this->clearLine($line);
 
-            try {
-                // Char is a escape character
-                if (!$this->isAllowedEscapeChar(STDIN, $char))
-                    throw new Exception("Detected escape character.", 23);
-            } catch (Exception $exception) {
-                die($exception->terminateProgram());
-            }
-
-            // Char is a new line
-            if ($this->isNewlineChar($char)) {
+            // Line contains new line
+            if (empty($line) || $this->isNewline($line)) {
                 $this->createToken("", "NEWLINE");
                 continue;
             }
 
-            // Ignore spaces
-            if ($this->isSpaceChar($char)) continue;
-
-            // Ignore comments
-            if ($this->isHashtagChar($char)) {
-                $this->generateComment(STDIN);
-                Statistics::add('comments');
-                continue;
-            }
-
             // Check for header
-            if ($this->isDotChar($char)) {
-                $this->generateAndValidateHeader(STDIN, $char);
+            if ($this->isHeader($line)) {
+                $this->createToken(".IPPcode21", "HEADER");
+                $this->createToken("", "NEWLINE");
                 $this->header = true;
                 continue;
             }
 
             try {
-                // Check if header set
-                if (!$this->header) throw new Exception("Header is not defined.", 21);
+                // Header is not set so we can not continue
+                if (!$this->header) throw new Exception("Header is not set.", 21);
+
+                // Validate line of code
+                $loc = $this->isValidLineOfCode($line);
+
+                // Check if line of code is valid
+                if ($loc === false) throw new Exception("Line of code is not valid.", 23);
+
+                // Create tokens from line of code
+                $this->createTokens($loc);
             } catch (Exception $exception) {
                 die($exception->terminateProgram());
             }
 
-            // Generate word
-            $buffer = $this->generateWord(STDIN, $char);
+            // STATP - Count lines of code
+            Statistics::add('loc');
+        }
 
-            // Check if word is instruction or expression
-            if ($this->isInstruction($buffer)) {
-                $this->createToken($buffer, "INSTRUCTION");
 
-                if (Statistics::isJumpInstruction($buffer)) Statistics::add('jumps');
-                if (Statistics::isLabelInstruction($buffer)) Statistics::add('labels');
-                Statistics::add('loc');
-            } else {
-                $this->createToken($buffer, "EXPRESSION");
-            }
+        try {
+            if (!$this->header) throw new Exception("File is empty.", 21);
+        } catch (Exception $exception) {
+            die($exception->terminateProgram());
         }
 
         return $this->tokens;
@@ -142,7 +130,7 @@ class Analyzer
             // Check if token is a instruction
             try {
                 if (!$this->isInstructionToken($token)) {
-                    throw new Exception("Found expression before instruction.", 22);
+                    throw new Exception("Unknown instruction or operation code.", 22);
                 }
 
                 // Token is a instruction - check operands
@@ -151,7 +139,12 @@ class Analyzer
                 // Add instruction to registry
                 $this->addToRegistry($token['id'], $operands);
 
-                // Set offset for next item
+                // STATP - Add jumps if jump instruction is set
+                if (Statistics::isJumpInstruction($token['id'])) Statistics::add('jumps');
+                // STATP - Add labels if label instruction is set
+                if (Statistics::isLabelInstruction($token['id'])) Statistics::add('labels');
+
+                // Set offset for next instruction
                 $i += $this->countInstructionOperands($token['id']);
 
                 // Set needNewlineToken flag after operation code

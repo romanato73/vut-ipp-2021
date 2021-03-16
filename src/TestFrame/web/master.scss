@@ -1,0 +1,125 @@
+$colors: (
+        'primary': #0E0A2E,
+        'secondary': #1ABC9C,
+        'white': #FFFFFF,
+        'light': #E5E5E5,
+        'gray': #B2B2B2,
+        'danger': #E74C3C,
+        'success': #2ECC71,
+);
+
+@function color($name) {
+  @return map-get($colors, $name)
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  @each $name, $hex in $colors {
+    --#{$name}: #{$hex};
+  }
+}
+
+html, body {
+  margin: 0;
+  color: color('primary');
+}
+
+header {
+  overflow: hidden;
+  background-color: color('primary');
+  color: color('secondary');
+
+  h1 {
+    font-weight: normal
+  }
+}
+
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+select {
+  padding: 3px 5px;
+  border: 1px solid color('light');
+}
+
+.content {
+  padding: 0 50px;
+}
+
+.text-success {
+  color: color('success')
+}
+
+.text-danger {
+  color: color('danger')
+}
+
+@media (max-width: 1200px) {
+  .hidden-sm {
+    display: none;
+  }
+  .row {
+    flex-direction: column;
+  }
+}
+
+.btn {
+  background-color: color('secondary');
+  color: color('white');
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 12px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+
+  .col {
+    flex: 1;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+table {
+  width: 100%;
+  border-top: 1px solid color('light');
+  border-collapse: collapse;
+
+  th, td {
+    padding: 15px 10px;
+    text-align: left;
+  }
+
+  tr:not(.details) {
+    border-top: 1px solid color('light')
+  }
+
+  tr.details {
+    display: none
+  }
+
+  tr.details td {
+    padding: 30px 10px
+  }
+}
+
+.code {
+  border: 1px solid color('primary');
+  padding: 10px 20px;
+  overflow: auto;
+  height: 400px;
+  max-width: 500px;
+}
+
+footer {
+  text-align: center;
+  padding: 20px 50px;
+}

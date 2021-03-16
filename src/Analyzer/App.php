@@ -1,57 +1,15 @@
 <?php
 
 
-namespace src;
+namespace src\Analyzer;
 
 
 use src\Extensions\Statistics;
 use src\Support\Exception;
+use src\Support\Facade;
 
-class App
+class App extends Facade
 {
-    /**
-     * @var string Program name.
-     */
-    public string $programName;
-
-    /**
-     * @var array Array of arguments.
-     */
-    public static array $arguments = [];
-
-    /**
-     * @var array|string[] Array of allowed arguments.
-     */
-    public static array $allowedArguments = [
-        "--help"
-    ];
-
-    /**
-     * Adds arguments into registry.
-     *
-     * @param array $arguments Arguments to register.
-     */
-    public function registerArguments(array $arguments)
-    {
-        foreach ($arguments as $argument) {
-            array_push(self::$allowedArguments, $argument);
-        }
-    }
-
-    /**
-     * Gets arguments from config.
-     *
-     * @param string $type Type of arguments
-     *
-     * @return array Returns array of arguments from config.
-     */
-    public function getArguments(string $type) : array
-    {
-        $args = include_once __DIR__ . '/config/arguments.php';
-
-        return $args[$type];
-    }
-
     /**
      * Listen for arguments.
      *
@@ -64,20 +22,6 @@ class App
 
         // Parse arguments
         $this->parseArguments($argv);
-    }
-
-    /**
-     * Terminates the program execution.
-     */
-    public function terminate()
-    {
-        $runtime = substr(microtime(true) - PROGRAM_START, 0, 6);
-
-        try {
-            throw new Exception("Execution time: {$runtime}ms", 0);
-        } catch (Exception $exception) {
-            die($exception->terminateProgram());
-        }
     }
 
     /**
@@ -134,18 +78,6 @@ class App
     }
 
     /**
-     * Check if argument is equal to --help.
-     *
-     * @param string $argument The checked argument
-     *
-     * @return bool True if argument is help argument otherwise false.
-     */
-    protected function isHelpArgument(string $argument) : bool
-    {
-        return $argument == "--help";
-    }
-
-    /**
      * Check if argument is set.
      *
      * @param string $name Name of argument
@@ -165,7 +97,7 @@ class App
         print("Generate a XML representation of imperative language IPPcode21.\n\n");
         print("Usage: php {$this->programName} [--help] <file> [--errors] [STATP...]\n");
         print("Arguments:\n");
-        print("\tfile\t\tIPPcode21 source file\n");
+        print("\tfile\t\tIPPcode21 source file as standard input.\n");
         print("\t--help\t\tDisplay this help and exit.\n");
         print("\t--errors\tShows detailed error messages during analysis and generation.\n");
         print("STATP:\tArguments must begin with --stats.\n");

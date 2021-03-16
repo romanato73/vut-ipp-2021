@@ -11,10 +11,11 @@ require_once __DIR__ . '/src/autoload.php';
 /**
  * Import Classes
  */
-use src\Analyzer;
-use src\App;
+
+use src\Analyzer\App;
+use src\Analyzer\Core;
+use src\Analyzer\XMLGenerator;
 use src\Extensions\Statistics;
-use src\XMLGenerator;
 
 /**
  * Initialize new application.
@@ -22,7 +23,9 @@ use src\XMLGenerator;
 $app = new App;
 
 // Register arguments
-$app->registerArguments($app->getArguments('parse'));
+$app->registerArguments([
+    '--errors',
+]);
 
 // Listen for arguments
 $app->listen($argv);
@@ -30,7 +33,7 @@ $app->listen($argv);
 /**
  * Analyze code
  */
-$analyzer = new Analyzer;
+$analyzer = new Core;
 
 // Lexical check
 $tokens = $analyzer->lexicalAnalysis();
@@ -43,16 +46,13 @@ $registry = $analyzer->syntaxAnalysis($tokens);
  */
 $generator = new XMLGenerator("1.0", "UTF-8", true);
 
-// Generate XML file from registry
-$xml = $generator->generateXML($registry);
-
-// Save XML file
-$generator->saveXMLToFile('ippcode21', $xml);
+// Generate XML from registry
+$generator->generateXML($registry);
 
 /**
- * Bonus
+ * STATP Extension
  */
-// Save statistics (if they are allowed)
+// Save statistics
 Statistics::generateStatistics();
 
 // Terminate the program

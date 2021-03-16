@@ -1,0 +1,32 @@
+<tr data-type="{state}">
+    <td class="{state_color}"><strong>{state}</strong></td>
+    <td>{dir}</td>
+    <td>{test_name}</td>
+    <td class="hidden-sm {ret_val_color}">{ret_val_status}</td>
+    <td class="hidden-sm {output_color}">{output_status}</td>
+    <td>
+        <button class="btn" data-id="{id}">Details</button>
+    </td>
+</tr>
+<tr class="details" data-id="{id}">
+    <td colspan="6">
+        <div class="row">
+            <div class="col">
+                <strong>Status:</strong>
+                <p>Return value: <span class="{ret_val_color}">{ret_val_status}</span></p>
+                <p>Output: <span class="{output_color}">{output_status}</span></p>
+                <strong>Return value:</strong>
+                <p>Expected return value: <strong>{expected_ret_val}</strong></p>
+                <p>Returned value: <strong>{returned_ret_val}</strong></p>
+            </div>
+            <div class="col">
+                <strong>Your output:</strong>
+                <pre class="code">{output}</pre>
+            </div>
+            <div class="col">
+                <strong>Difference:</strong>
+                <pre class="code">{output_diff}</pre>
+            </div>
+        </div>
+    </td>
+</tr>

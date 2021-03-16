@@ -210,7 +210,7 @@ class Statistics
         $labels = [];
         $order = 0;
 
-        // Get jump instructions and labels
+        // Fill jump instructions and labels
         foreach ($instructions as $instruction) {
             if (in_array($instruction['name'], self::$jumpInstructions)) {
                 array_push($jumpInstructions, [
@@ -231,9 +231,21 @@ class Statistics
             $order++;
         }
 
-        // Calculate fwjumps
+        Statistics::calculateForwardJumps($jumpInstructions, $labels);
+        Statistics::calculateBackwardJumps($jumpInstructions, $labels);
+        Statistics::calculateBadJumps($jumpInstructions, $labels);
+    }
+
+    /**
+     * Calculates forward jumps if active
+     *
+     * @param array $instructions Jump instructions
+     * @param array $labels       Labels
+     */
+    private static function calculateForwardJumps(array $instructions, array $labels)
+    {
         if (self::active('fwjumps')) {
-            foreach ($jumpInstructions as $instruction) {
+            foreach ($instructions as $instruction) {
                 foreach ($labels as $label) {
                     if ($instruction['label'] == $label['value'] && $instruction['order'] < $label['order']) {
                         Statistics::add('fwjumps');
@@ -241,10 +253,18 @@ class Statistics
                 }
             }
         }
+    }
 
-        // Calculate backjumps
+    /**
+     * Calculates backward jumps if active
+     *
+     * @param array $instructions Jump instructions
+     * @param array $labels       Labels
+     */
+    private static function calculateBackwardJumps(array $instructions, array $labels)
+    {
         if (self::active('backjumps')) {
-            foreach ($jumpInstructions as $instruction) {
+            foreach ($instructions as $instruction) {
                 foreach ($labels as $label) {
                     if ($instruction['label'] == $label['value'] && $instruction['order'] > $label['order']) {
                         Statistics::add('backjumps');
@@ -252,13 +272,21 @@ class Statistics
                 }
             }
         }
+    }
 
-        // Calculate bad jumps
+    /**
+     * Calculates bad jumps if active
+     *
+     * @param array $instructions Jump instructions
+     * @param array $labels       Labels
+     */
+    private static function calculateBadJumps(array $instructions, array $labels)
+    {
         if (self::active('badjumps')) {
             $returns = 0;
             $calls = 0;
 
-            foreach ($jumpInstructions as $instruction) {
+            foreach ($instructions as $instruction) {
                 // Count RETURNs
                 if ($instruction['name'] == "RETURN") {
                     $returns++;

@@ -1,27 +1,21 @@
 <?php
 
 
-namespace src;
+namespace src\TestFrame;
 
 
 use src\Support\Exception;
-use src\Traits\PathChecker;
+use src\Support\Facade;
+use src\TestFrame\Traits\PathChecker;
 
-class TestApp extends App
+class App extends Facade
 {
-    // TODO: Pass --errors into $arguments and other arguments into another array
-
     use PathChecker;
 
     /**
-     * @var bool Indicates that parse only mode is on
+     * @var array Active modes.
      */
-    private bool $parseOnlyMode = false;
-
-    /**
-     * @var bool Indicates that interpret only mode is on
-     */
-    private bool $intOnlyMode = false;
+    public static array $modes = [];
 
     /**
      * Listen for arguments.
@@ -42,7 +36,7 @@ class TestApp extends App
      *
      * @param array $arguments The entered arguments
      */
-    private function parseArguments(array $arguments)
+    public function parseArguments(array $arguments)
     {
         foreach ($arguments as $argument) {
             try {
@@ -57,8 +51,8 @@ class TestApp extends App
                     $this->printHelp();
                 }
 
-                // Check if argument is not used with bad combination
-                if (!$this->isValidCombination($argument))
+                // Check if mode arguments are correct
+                if (!$this->modeArgumentsAreCorrect($argument))
                     throw new Exception("Argument {$argument} is used inside bad combination.", 10);
             } catch (Exception $exception) {
                 die($exception->terminateProgram());
@@ -86,23 +80,77 @@ class TestApp extends App
     }
 
     /**
-     * Check if combination of arguments is valid.
+     * Check if mode argument is set and check its validity.
      *
      * @param string $argument The checked argument
      *
      * @return bool True if valid otherwise false.
      */
-    private function isValidCombination(string $argument) : bool
+    private function modeArgumentsAreCorrect(string $argument) : bool
     {
-        $parseOnly = ["--parse-only", "--parse-script"];
-        $intOnly = ["--int-only", "--int-script"];
+        if ($this->isModeArgument($argument)) {
+            array_push(self::$modes, $this->getModeArgument($argument));
+        }
 
-        if (in_array($this->getRealArgument($argument), $parseOnly)) $this->parseOnlyMode = true;
-        if (in_array($this->getRealArgument($argument), $intOnly)) $this->intOnlyMode = true;
-
-        if ($this->parseOnlyMode && $this->intOnlyMode) return false;
+        // Check if parse && int mode are not together
+        if (self::getMode('parse') && self::getMode('int')) return false;
 
         return true;
+    }
+
+    /**
+     * Checks if argument is mode argument.
+     *
+     * @param string $argument The checked argument
+     *
+     * @return bool True if argument is mode argument otherwise false.
+     */
+    private function isModeArgument(string $argument) : bool
+    {
+        $parseOnlyArguments = ["--parse-only", "--parse-script"];
+        $intOnlyArguments = ["--int-only", "--int-script"];
+
+        $argument = $this->getRealArgument($argument);
+
+        if (in_array($argument, $parseOnlyArguments)) return true;
+
+        if (in_array($argument, $intOnlyArguments)) return true;
+
+        if ($argument == "--recursive") return true;
+
+        return false;
+    }
+
+    /**
+     * Gets plain mode argument.
+     *
+     * @param string $argument The passed argument
+     *
+     * @return string Plain mode argument.
+     */
+    private function getModeArgument(string $argument) : string
+    {
+        // Remove "--"
+        $argument = substr($argument, 2);
+
+        // Get everything before "="
+        if (strpos($argument, '=') !== false) {
+            $argument = strstr($argument, '=', true);
+        }
+
+        return $argument;
+    }
+
+    /**
+     * Get mode from modes if exists.
+     *
+     * @param string $name
+     *
+     * @return bool True if mode found otherwise false.
+     */
+    public static function getMode(string $name) : bool
+    {
+        return in_array($name, self::$modes);
     }
 
     /**
@@ -140,20 +188,27 @@ class TestApp extends App
      */
     private function pushArgument(string $argument)
     {
-        $key = substr($this->getRealArgument($argument), 2);
+        // Check if argument already exists
+        foreach (self::$arguments as $arg) {
+            $argumentName = $this->getRealArgument($argument);
+            try {
+                if ((is_string($arg) && $argumentName == $arg) || (is_array($arg) && $arg['name'] == $argumentName))
+                    throw new Exception("This argument is already used.", 10);
+            } catch (Exception $exception) {
+                die($exception->terminateProgram());
+            }
+        }
 
         if ($this->isAssignmentArgument($argument) === false) {
-            array_push(self::$arguments, [
-                $key => ['type' => 'argument']
-            ]);
+            array_push(self::$arguments, $argument);
         } else {
             $path = $this->getPath($argument);
+            $name = $this->getRealArgument($argument);
 
             array_push(self::$arguments, [
-                $key => [
-                    'type' => $this->getPathType($argument),
-                    'path' => $path
-                ]
+                'name' => $name,
+                'type' => $this->getPathType($argument),
+                'path' => $path,
             ]);
         }
     }

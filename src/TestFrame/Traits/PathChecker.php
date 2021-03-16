@@ -1,7 +1,7 @@
 <?php
 
 
-namespace src\Traits;
+namespace src\TestFrame\Traits;
 
 
 trait PathChecker

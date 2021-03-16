@@ -14,12 +14,12 @@ analysis, XML generator.
 Because the whole program is using OOP principles, I needed to
 create some classes.
 
-### 2.1 Classes (src/)
+### 2.1 Classes (src/Analyzer)
 **App.php** - The main application takes care of arguments if they are correct.  
 **Analyzer.php** - Analyzer contains lexical and syntax analysis.  
 **XMLGenerator.php** - Generates XML code from parsed instructions.
 
-### 2.2 Traits (src/Traits)
+### 2.2 Traits (src/Analyzer/Traits)
 For better orientation and simplicity I decided to use traits too.
 Traits are great in case we need to inherit multiple behaviours.
 
@@ -28,12 +28,12 @@ with instructions (syntax checker for instruction, operand validation...).
 **Lexical.php** - Support methods for lexical analysis.  
 **Token.php** - Token registry and methods for working with tokens.
 
-### 2.3 Exception (src/Support)
+### 2.3 Exception (src/Analyzer/Support)
 For error handling I am using customized Exception class with try-catch block.
 
 **Exception.php** - Custom extension for PHP Exception Model.
 
-### 2.4 Extension STATP (src/Extensions)
+### 2.4 Extension STATP (src/Analyzer/Extensions)
 **Statistics.php** - This class takes care of statistics for extension STATP.
 This file contains mainly static methods - so I do not need to create instances.
 
@@ -63,9 +63,9 @@ into safe XML characters.
 
 ## 4 Extension STATP
 
-In **(3.1) Parse arguments** I also validate statistics arguments and initialize an array of files
-with requested statistics.  
-In **(3.2) Lexical analysis** arguments: `--comments`, `--jumps`, `--labels` and `--loc` are counted.  
-In **(3.2) Syntax analysis** arguments `--fwjumps`, `--backjumps`, `--badjumps` are counted.  
+In **(3.1) Parse arguments** I also validate statistics arguments and initialize an array of files with requested
+statistics.  
+In **(3.2) Lexical analysis** arguments: `--comments` and `--loc` are counted.  
+In **(3.2) Syntax analysis** arguments `--jumps`, `--labels`, `--fwjumps`, `--backjumps`, `--badjumps` are counted.  
 In phase **(3.3)** after generating XML file it also creates the file/s (if `--stats` argument passed)
 where statistics are written.

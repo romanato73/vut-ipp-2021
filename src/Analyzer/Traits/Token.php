@@ -1,7 +1,7 @@
 <?php
 
 
-namespace src\Traits;
+namespace src\Analyzer\Traits;
 
 
 trait Token
@@ -10,13 +10,6 @@ trait Token
      * @var array Array of tokens,
      */
     protected array $tokens = [];
-
-    /**
-     * @var array|string[] Forbidden tokens
-     */
-    protected array $interruptTokens = [
-        "\r\n", "\n", "\r", " ", "#",
-    ];
 
     /**
      * Creates a token and adds it into array of tokens.
@@ -35,6 +28,24 @@ trait Token
     }
 
     /**
+     * Creates a tokens and add them into array of tokens.
+     *
+     * @param array $loc The checked line of code
+     */
+    protected function createTokens(array $loc)
+    {
+        foreach ($loc as $instruction => $operands) {
+            $this->createToken($instruction, 'INSTRUCTION');
+
+            foreach ($operands as $operand) {
+                $this->createToken($operand, 'EXPRESSION');
+            }
+        }
+
+        $this->createToken('', 'NEWLINE');
+    }
+
+    /**
      * Check if expression is valid operand.
      *
      * @param string $instruction The name of instruction
@@ -47,6 +58,9 @@ trait Token
     {
         // Get operand type
         $type = $this->getOperandType($instruction, $index);
+
+        // Check for allowed escape characters
+        if (!$this->isAllowedEscapeChar($expression)) return false;
 
         // Operand type is a var
         if ($type == "var") {

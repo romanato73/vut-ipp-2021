@@ -1,6 +1,6 @@
 <?php
 
-namespace src\Traits;
+namespace src\Analyzer\Traits;
 
 
 use src\Support\Exception;
@@ -180,7 +180,7 @@ trait Instructions
         if (!$this->isAllowedFrame($symbol['prefix']) && !$this->isAllowedType($symbol['prefix'])) return false;
 
         // Check if separator is set
-        if (!$separator) return false;
+        if ($separator === false) return false;
 
         // Check if value of symbol is correct
         if (in_array($symbol['prefix'], $this->allowedFrames)) {
@@ -256,6 +256,13 @@ trait Instructions
         $offset = 0;
         $index++;
 
+        try {
+            if (count($tokens) < ($index + $operandsCounter))
+                throw new Exception("Instruction {$instruction['id']} has invalid operands.", 23);
+        } catch (Exception $exception) {
+            die($exception->terminateProgram());
+        }
+
         // Loop through operands
         for ($j = $index; $j < $index + $operandsCounter; $j++) {
             // Increment offset
@@ -268,7 +275,7 @@ trait Instructions
                 // Next token must be an expression otherwise syntax error
                 if (!$this->isExpressionToken($token)) throw new Exception(
                     "{$instruction['id']} has invalid operand/s.",
-                    22
+                    23
                 );
 
                 $validatedOperand = $this->isValidOperandToken($instruction['id'], $token['id'], $operandIndex++);
@@ -276,7 +283,7 @@ trait Instructions
                 if (!$validatedOperand)
                     throw new Exception(
                         "{$instruction['id']}'s operand contains invalid character or incorrect frame/type.",
-                        22
+                        23
                     );
             } catch (Exception $exception) {
                 die($exception->terminateProgram());
@@ -306,7 +313,7 @@ trait Instructions
             if (!$isAllowed) return false;
 
             // Check if value contains only alphanumeric characters or allowed symbols
-            $isAllowed = preg_match("/([a-zA-Z0-9?!*%$&_-])/", $value);
+            $isAllowed = preg_match("/^([a-zA-Z0-9?!*%$&_-])*$/", $value);
             if (!$isAllowed) return false;
         }
 

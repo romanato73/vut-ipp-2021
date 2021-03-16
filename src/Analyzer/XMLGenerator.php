@@ -1,7 +1,7 @@
 <?php
 
 
-namespace src;
+namespace src\Analyzer;
 
 
 use DOMDocument;
@@ -32,8 +32,6 @@ class XMLGenerator
      * Generates the whole XML document from registry.
      *
      * @param array $registry The registry from which we generate XML Document
-     *
-     * @return false|string String of XML Document if error occurred false.
      */
     public function generateXML(array $registry)
     {
@@ -48,30 +46,7 @@ class XMLGenerator
         }
 
         // Return XML file
-        return $this->xml->saveXML();
-    }
-
-    /**
-     * Saves the XML into a file.
-     *
-     * @param string $fileName Name of file
-     * @param string $xml      String of XML document
-     */
-    public function saveXMLToFile(string $fileName, string $xml)
-    {
-        try {
-            $stream = fopen($fileName . '.xml', 'w');
-
-            if (!$stream) throw new Exception('Can not save to output file.', 12);
-
-            $written = fwrite($stream, $xml);
-
-            fclose($stream);
-
-            if (!($written > 0)) throw new Exception('Can not save to output file.', 12);
-        } catch (Exception $exception) {
-            die($exception->terminateProgram());
-        }
+        echo $this->xml->saveXML();
     }
 
     /**
