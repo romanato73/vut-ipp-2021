@@ -149,6 +149,9 @@ class Core
 
                 // Run jexamxml or diff depends on mode
                 if (App::getMode('parse-only')) {
+                    // Skip tests that have empty output
+                    if (empty(file_get_contents($out))) continue;
+
                     // Run jexamxml
                     exec(
                         "java -jar {$jexamXmlJar} {$tmpOutput} {$out} {$tmpDiff} /D {$jexamXmlCfg}",

@@ -77,6 +77,9 @@ class HTMLGenerator
     public function generateProgress(int $passed, int $failed)
     {
         $all = $passed + $failed;
+
+        if ($all == 0) return;
+
         $calc = ($passed / $all) * 100;
 
         // Update tests counter
