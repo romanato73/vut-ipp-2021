@@ -1,0 +1,24 @@
+{
+  "0": "Program executed successfully.",
+  "10": "Program arguments error.",
+  "11": "Can not open input file (file does not exists or you do not have permissions).",
+  "12": "Can not write into a output file (you do not have permissions or unknown error).",
+  "99": "Internal error.",
+
+  "21": "Unknown or incorrect header in source file of IPPcode21.",
+  "22": "Unknown or incorrect operation code in source file of IPPcode21.",
+  "23": "Lexical or Syntax error in source file of IPPcode21.",
+
+  "31": "Bad XML input Format.",
+  "32": "Unexpected XML structure.",
+
+  "41": "Path or file in arguments does not exist or you do not have permissions.",
+
+  "52": "Error during semantic analysis.",
+  "53": "Bad operand types.",
+  "54": "Accessing to non-existing variable.",
+  "55": "Frame is not set (Reading from empty stack of frames).",
+  "56": "Value is empty (in a variable or stack)",
+  "57": "Invalid value of operand (Division by zero, EXIT's bad return code).",
+  "58": "String error."
+}

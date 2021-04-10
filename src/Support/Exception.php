@@ -5,25 +5,21 @@ namespace src\Support;
 
 
 use src\Analyzer\App;
+use Throwable;
 
 class Exception extends \Exception
 {
     /**
      * @var array|string[] Array of error codes
      */
-    private array $codes = [
-        0 => "Program executed successfully.",
-        10 => "Program arguments error.",
-        11 => "Can not open input file (file does not exists or you do not have permissions).",
-        12 => "Can not write into a output file (you do not have permissions or unknown error).",
-        99 => "Internal error.",
-        // parse.php
-        21 => "Unknown or incorrect header in source file of IPPcode21.",
-        22 => "Unknown or incorrect operation code in source file of IPPcode21.",
-        23 => "Lexical or Syntax error in source file of IPPcode21.",
-        // test.php
-        41 => "Path or file in arguments does not exist or you do not have permissions.",
-    ];
+    private array $codes = [];
+
+    public function __construct($message = "", $code = 0, Throwable $previous = null)
+    {
+        parent::__construct($message, $code, $previous);
+
+        $this->codes = json_decode(file_get_contents('src/Support/errors.json'), true);
+    }
 
     /**
      * Prints an exception code.
