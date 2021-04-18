@@ -2,9 +2,6 @@ import sys
 from src.Interpret.App import App
 from src.Support.ErrorHandler import ErrorHandler
 
-# DEBUG:
-#  tests/both/write
-
 handler = ErrorHandler()
 
 # Create Application instance
