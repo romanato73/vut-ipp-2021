@@ -16,13 +16,13 @@ class Core
      * @var string Set the php CLI
      * @todo: Default php7.4
      */
-    private string $phpCLI = "php.exe";
+    private string $phpCLI = "php.7.4";
 
     /**
      * @var string Set the python CLI
      * @todo: Default python3.8
      */
-    private string $pyCLI = "py";
+    private string $pyCLI = "python3.8";
 
     /**
      * @var array Array of paths.
