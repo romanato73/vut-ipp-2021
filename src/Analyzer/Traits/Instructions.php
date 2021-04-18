@@ -38,7 +38,7 @@ trait Instructions
         "EQ" => ["var", "symb", "symb"],
         "AND" => ["var", "symb", "symb"],
         "OR" => ["var", "symb", "symb"],
-        "NOT" => ["var", "symb", "symb"],
+        "NOT" => ["var", "symb"],
         "INT2CHAR" => ["var", "symb"],
         "STRI2INT" => ["var", "symb", "symb"],
         // I/O

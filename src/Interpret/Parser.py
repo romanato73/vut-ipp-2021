@@ -60,8 +60,9 @@ class Parser:
             self.handler.terminateProgram(32, '<instruction> has illegal attributes.')
 
         # Check if instruction exists
-        if node.getAttribute('opcode') not in instructions:
-            self.handler.terminateProgram(32, 'Unknown instruction.')
+        opcode = node.getAttribute('opcode').upper()
+        if opcode not in instructions:
+            self.handler.terminateProgram(32, 'Unknown instruction: ' + node.getAttribute('opcode'))
 
         # Check if order > 0
         order = node.getAttribute('order')
@@ -70,7 +71,7 @@ class Parser:
 
         # Check child (arg) nodes
         if node.hasChildNodes():
-            self.__checkArgNodes(node.getAttribute('opcode'), node.childNodes)
+            self.__checkArgNodes(opcode, node.childNodes)
 
     def __checkArgNodes(self, instruction, nodes):
         """
@@ -80,48 +81,61 @@ class Parser:
         :param nodes:       The checked nodes
         """
         index = 0
+        argIndexes = [0] * len(instructions.get(instruction))
         for node in nodes:
             if node.nodeType == 1:
                 # Check for index
                 if index >= len(instructions.get(instruction)):
-                    self.handler.terminateProgram(32, 'Instruction has invalid number of operands.')
+                    self.handler.terminateProgram(32, instruction+' has invalid number of operands.')
                 # Check argument node
-                self.__checkArgNode(node, index+1, instructions.get(instruction)[index], instruction)
+                argIndex = self.__checkArgNode(node, instruction)
+                argIndexes[index] = argIndex
                 index += 1
             else:
                 if node.nodeType == 3 and node.data.lstrip().rstrip() == "":  # TEXT Node newline
                     continue
                 self.handler.terminateProgram(32, 'Illegal nodeType.')
-        if index != len(instructions.get(instruction)):
-            self.handler.terminateProgram(32, 'Instruction has invalid number of operands.')
+        if 0 in argIndexes:
+            self.handler.terminateProgram(32, instruction+' has invalid number of operands.')
 
-    def __checkArgNode(self, node, order, operandType, instruction):
+    def __checkArgNode(self, node, instruction):
         """
         Checks current arg node and its value.
 
         :param node:        Current arg node
-        :param order:       Order of current arg node
-        :param operandType: Type of operand
         :param instruction: Instruction that is related to current argument
+        :return Index of argument.
         """
         allowedAttributes = ['type']
-        order = str(order)
 
-        if not re.fullmatch('(arg'+order+')', node.tagName):
-            self.handler.terminateProgram(32, instruction + ' has ' + node.tagName + ' but <arg'+order+'> expected')
+        if not re.fullmatch('(arg[1-3])', node.tagName):
+            self.handler.terminateProgram(32, instruction + ' has invalid name of arg.')
+
+        argIndex = node.tagName[3]
+
         if not self.__hasValidAttributes(node, allowedAttributes):
-            self.handler.terminateProgram(32, '<arg'+order+'> has illegal attributes')
+            self.handler.terminateProgram(32, '<arg'+argIndex+'> has illegal attributes')
 
         # Check child (text) nodes
         if node.hasChildNodes():
             for arg in node.childNodes:
                 if arg.nodeType == 3:  # TEXT Nodes
+                    index = int(argIndex) - 1
+                    if index >= len(instructions.get(instruction)):
+                        self.handler.terminateProgram(
+                            32,
+                            instruction + " has invalid argument."
+                        )
+                    operandType = instructions.get(instruction)[index]
                     if not self.__isValueValid(arg.data, node.getAttribute('type'), operandType):
-                        self.handler.terminateProgram(32, "Argument's operand is not valid.")
+                        self.handler.terminateProgram(
+                            32,
+                            instruction + " expected "+operandType+" but type "+node.getAttribute('type')+" given."
+                        )
                 else:
                     self.handler.terminateProgram(32, 'Illegal nodeType.')
-        else:
-            self.handler.terminateProgram(32, instruction + "'s <arg"+order+"> has empty content.")
+
+        return int(argIndex)
 
     @staticmethod
     def __hasValidAttributes(node, attributes: list) -> bool:
@@ -166,7 +180,7 @@ class Parser:
                 return False
             if argType == 'int' and not expression.lstrip('-').isdigit():
                 return False
-            if argType == 'bool' and (expression != 'true' or expression != 'false'):
+            if argType == 'bool' and (expression != 'true' and expression != 'false'):
                 return False
             if argType == 'nil' and expression != 'nil':
                 return False

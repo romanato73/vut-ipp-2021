@@ -23,26 +23,21 @@
     "INT2CHAR": ["var", "symb"],
     "STRI2INT": ["var", "symb", "symb"],
 
-
     "READ": ["var", "type"],
     "WRITE": ["symb"],
-
 
     "CONCAT": ["var", "symb", "symb"],
     "STRLEN": ["var", "symb"],
     "GETCHAR": ["var", "symb", "symb"],
     "SETCHAR": ["var", "symb", "symb"],
 
-
     "TYPE": ["var", "symb"],
-
 
     "LABEL": ["label"],
     "JUMP": ["label"],
     "JUMPIFEQ": ["label", "symb", "symb"],
     "JUMPIFNEQ": ["label", "symb", "symb"],
     "EXIT": ["symb"],
-
 
     "DPRINT": ["symb"],
     "BREAK": []

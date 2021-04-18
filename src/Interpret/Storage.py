@@ -21,9 +21,10 @@ class Storage:
         :return: Statement of storage in string.
         """
         string = "Global Frame:\n" + self.frames.get('global').statement() + "\n" \
-                 "Temp Frame:\n" + self.frames.get('temp').statement() + "\n" \
+                 "Temp Frame:\n" + self.frames.get('temp', True).statement() + "\n" \
                  "Local Frame:\n" + self.frames.get('local', True).statement() + "\n" \
-                 "Stack:\n" + self.stack.statement() + ""
+                 "Stack:\n" + self.stack.statement() + "\n" \
+                 "Call Stack:\n" + self.calls.statement(True) + ""
         return string
 
 
@@ -141,7 +142,7 @@ class Variables:
 
         :param variables: Variables that are cloned
         """
-        self.registry = variables
+        self.registry = variables.registry
 
     def statement(self) -> str:
         """
@@ -174,10 +175,15 @@ class Frames:
         :param frameType: Frame type
         """
         if frameType == 'local':
-            if not self.__temp:
+            if self.__temp is None:
                 self.handler.terminateProgram(55, 'Accessing to non-defined temporary frame.')
-            self.__locals.append(Variables().clone(self.__temp))
+            variables = Variables()
+            variables.clone(self.__temp)
+            self.__locals.append(variables)
             self.__nesting += 1
+            for variable in self.get('local').getAll():
+                variable.frame = 'LF'
+            self.__temp = None
         if frameType == 'temp':
             self.__temp = Variables()
 
@@ -206,11 +212,29 @@ class Frames:
         """
         Pops local frame into a temporary frame.
         """
-        if self.__nesting < len(self.__locals):
+        if self.__nesting != -1 and self.__nesting < len(self.__locals):
             self.__temp = self.__locals[self.__nesting]
             self.__nesting -= 1
         else:
             self.handler.terminateProgram(55, 'Accessing to non-existing local frame.')
+
+    def has(self, frameType):
+        """
+        Checks whether frame exists.
+
+        :param frameType: Type of frame
+        :return:
+        """
+        if frameType == 'GF' or frameType == 'global':
+            return True
+
+        frame = self.get(frameType)
+
+        if isinstance(frame, Variables):
+            return True
+        if isinstance(frame, list):
+            return True
+        return True
 
     def registerVar(self, var: Argument) -> Variable:
         """
@@ -219,6 +243,7 @@ class Frames:
         :param var: Variable that holds required parameters
         :return: Registered Variable.
         """
+        self.__checkFrame(var.frame)
         return self.get(var.frame).register(var)
 
     def getVar(self, var: Argument or Variable):
@@ -228,6 +253,7 @@ class Frames:
         :param var: Argument of Variable instance that is searched.
         :return: Variable that is found in storage.
         """
+        self.__checkFrame(var.frame)
         if isinstance(var, Argument):
             return self.get(var.frame).get(var.value)
         if isinstance(var, Variable):
@@ -242,6 +268,7 @@ class Frames:
         :param varType: New type for variable.
         :return:
         """
+        self.__checkFrame(var.frame)
         return self.get(var.frame).update(var, value, varType)
 
     def hasVar(self, var: Argument):
@@ -251,12 +278,27 @@ class Frames:
         :param var: Searched variable.
         :return: True if one of frames has variable otherwise false.
         """
+        self.__checkFrame(var.frame)
         return self.get(var.frame).has(var.value)
+
+    def __checkFrame(self, frameType):
+        """
+        Checks if frame exists.
+
+        :param frameType: Frame type
+        """
+        if self.get(frameType) is None:
+            frame = 'Temporary' if frameType == 'TF' else 'Local'
+            self.handler.terminateInterpret(55, frame + ' frame is not set.')
 
 
 class Stack(StackInterface):
-    def statement(self):
+    def statement(self, callStack=False):
         string = ""
+        if callStack:
+            for item in self.registry:
+                string += '<' + str(item.opcode) + '@' + str(item.order) + '>\n'
+            return string
         for item in self.registry:
             string += '<' + str(item.get('type')) + '>=' + str(item.get('value')) + '\n'
         return string

@@ -1,3 +1,5 @@
+import sys
+
 from src.Interpret.Argument import Argument
 from src.Interpret.Core import Interpret
 from src.Support.ErrorHandler import ErrorHandler
@@ -41,14 +43,14 @@ class App:
             if not self.Argument.isValidPath(sourceFile):
                 self.handler.terminateProgram(11, 'File ' + sourceFile + ' is invalid.')
         else:
-            sourceFile = input()
+            sourceFile = sys.stdin
 
         if self.Argument.isSet('input'):
             inputFile = self.Argument.getPath('input')
             if not self.Argument.isValidPath(inputFile):
                 self.handler.terminateProgram(11, 'File ' + inputFile + ' is invalid.')
         else:
-            inputFile = input()
+            inputFile = sys.stdin
 
         Interpret(sourceFile, inputFile)
 

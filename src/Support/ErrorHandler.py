@@ -38,6 +38,7 @@ class ErrorHandler:
 
         if self.debug:
             print(errors[str(code)])
-            print(self.instruction.opcode + '@' + str(self.instruction.order), end=': ')
+            if self.instruction is not None:
+                print(self.instruction.opcode + '@' + str(self.instruction.order), end=': ')
             print(message) if message else print('Unknown error.')
         exit(code)

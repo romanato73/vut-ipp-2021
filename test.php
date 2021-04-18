@@ -46,6 +46,7 @@ $tester = new Core($html);
 // Perform tests
 $type = $tester->performTests(App::$arguments);
 
+// Generate HTML
 $html->generate($type);
 
 // Terminate the program

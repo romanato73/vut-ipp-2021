@@ -58,7 +58,7 @@ class HTMLGenerator
      *
      * @param array $data Data added into template.
      */
-    public function generateRow(array $data)
+    public function generateRecord(array $data)
     {
         $template = file_get_contents($this->path . '/template.html');
         foreach ($data as $key => $value) {

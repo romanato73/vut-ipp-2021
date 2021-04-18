@@ -21,7 +21,7 @@ class ArgumentInterface:
         return True if self.isInt() or self.isBool() or self.isString() or self.isNil() else False
 
     def isRelationValid(self):
-        return True if self.isInt() or self.isBool() or self.isString() else False
+        return True if self.isInt() or self.isBool() or self.isString() or self.isNil() else False
 
     def isVar(self):
         return True if self.type == 'var' else False
@@ -50,7 +50,7 @@ class StackInterface:
         """
         self.registry.append(item)
 
-    def pops(self):
+    def pop(self):
         """
         Pops item from a stack.
 

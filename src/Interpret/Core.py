@@ -1,3 +1,5 @@
+import io
+import re
 import sys
 from xml.dom import minidom
 
@@ -20,7 +22,7 @@ class Interpret:
         # Get Nodes
         tree = self.__getNodes(sourceFile)
 
-        # Check nodes
+        # Run parser
         Parser(tree)
 
         # Initialize storage
@@ -29,11 +31,19 @@ class Interpret:
         # Initialize instructions
         self.instructions, self.ordersList = self.__collectInstructions(tree)
 
+        # Initialize inputs
+        self.inputs = self.__getInputs(inputFile)
+        self.inputsFlag = True if self.inputs is not None else False
+
         # Program counter
         self.counter = 0
 
+        # End if no instructions provided.
+        if len(self.instructions) == 0:
+            self.handler.terminateProgram(0, 'Interpretation done (no instructions set).')
+
         # Execute the code
-        self.order = self.counter
+        self.order = self.ordersList[0]
         self.execute(self.__getInstructionAt(self.order))
 
     def execute(self, instruction: Instruction):
@@ -48,11 +58,11 @@ class Interpret:
         self.handler.instruction = instruction
 
         if instruction.opcode == 'MOVE':  # MOVE <var> <symb>
-            var = self.__checkVariable(instruction.getArg(0))
+            var = self.__checkVariable(instruction.getArg(0), False)
             symb = self.__checkVariable(instruction.getArg(1))
 
-            if not symb.value:
-                self.handler.terminateInterpret(56, 'Uninitialized variable.')
+            if symb.value is None:
+                self.handler.terminateInterpret(56, 'Uninitialized variable <symb>.')
             self.storage.frames.updateVar(var, symb.value, symb.type)
         elif instruction.opcode == 'CREATEFRAME':  # CREATEFRAME
             self.storage.frames.create('temp')
@@ -66,18 +76,17 @@ class Interpret:
         elif instruction.opcode == 'CALL':  # LABEL <label>
             label = instruction.getArg(0)
             self.storage.calls.push(instruction)
-            self.order = self.ordersList.index(self.storage.labels.getOrder(label.value))
+            self.order = self.storage.labels.getOrder(label.value)
             self.execute(self.__getInstructionAt(self.order))
         elif instruction.opcode == 'RETURN':  # RETURN
             order = self.storage.calls.pop().order
-            self.order = self.ordersList.index(order + 1)
-            self.execute(self.__getInstructionAt(self.order))
+            self.execute(self.__getInstructionAt(order, True))
         elif instruction.opcode == 'PUSHS':  # PUSHS <symb>
             symb = self.__checkVariable(instruction.getArg(0))
             self.storage.stack.push({'value': symb.value, 'type': symb.type})
         elif instruction.opcode == 'POPS':  # POPS <var>
-            var = self.__checkVariable(instruction.getArg(0))
-            item = self.storage.stack.pops()
+            var = self.__checkVariable(instruction.getArg(0), False)
+            item = self.storage.stack.pop()
             self.storage.frames.updateVar(var, item.get('value'), item.get('type'))
         elif instruction.opcode == 'ADD':  # ADD <var> <symb1> <symb2>
             var, symb1, symb2 = self.__initializeArithmeticOperation(instruction)
@@ -118,7 +127,7 @@ class Interpret:
             value = 'false' if symb else 'true'
             self.storage.frames.updateVar(var, value, 'bool')
         elif instruction.opcode == 'INT2CHAR':  # INT2CHAR <var> <symb>
-            var = self.__checkVariable(instruction.getArg(0))
+            var = self.__checkVariable(instruction.getArg(0), False)
             symb = self.__checkVariable(instruction.getArg(1))
             if not symb.isInt():
                 self.handler.terminateInterpret(53, 'Int is expected as second parameter.')
@@ -127,7 +136,7 @@ class Interpret:
             except ValueError:
                 self.handler.terminateInterpret(58, 'Value of second parameter is out of range.')
         elif instruction.opcode == 'STRI2INT':  # STRI2INT <var> <symb1> <symb2>
-            var = self.__checkVariable(instruction.getArg(0))
+            var = self.__checkVariable(instruction.getArg(0), False)
             symb1 = self.__checkVariable(instruction.getArg(1))
             symb2 = self.__checkVariable(instruction.getArg(2))
             if not symb1.isString() or not symb2.isInt():
@@ -136,45 +145,65 @@ class Interpret:
             index = int(symb2.value)
             if index >= len(symb1.value) or index < 0:
                 self.handler.terminateInterpret(58, 'Index is out of range.')
-            self.storage.frames.updateVar(var, ord(symb1.value[index]), 'string')
+            self.storage.frames.updateVar(var, int(ord(symb1.value[index])), 'int')
         elif instruction.opcode == 'READ':  # READ <var> <type>
-            var = self.__checkVariable(instruction.getArg(0))
+            var = self.__checkVariable(instruction.getArg(0), False)
             readType = instruction.getArg(1).value
-            read = input()
+
+            if self.inputsFlag:
+                if len(self.inputs) > 0:
+                    read = self.inputs.pop(0)
+                else:
+                    read = ''
+            else:
+                read = input()
 
             if len(read) == 0:
                 self.storage.frames.updateVar(var, 'nil', 'nil')
             elif readType == 'int':
+                read = read.lstrip().rstrip()
                 if read.lstrip('-').isdigit():
-                    self.storage.frames.updateVar(var, read, 'int')
+                    self.storage.frames.updateVar(var, int(read), 'int')
                 else:
                     self.storage.frames.updateVar(var, 'nil', 'nil')
             elif readType == 'string':
-                self.storage.frames.updateVar(var, read, 'string')
+                read = read.lstrip().rstrip()
+                self.storage.frames.updateVar(var, str(read), 'string')
             elif readType == 'bool':
-                if read == 'true':
+                read = read.lstrip().rstrip()
+                if read.lower() == 'true':
                     self.storage.frames.updateVar(var, 'true', 'bool')
                 else:
                     self.storage.frames.updateVar(var, 'false', 'bool')
         elif instruction.opcode == 'WRITE':  # WRITE <symb>
             symb = self.__checkVariable(instruction.getArg(0))
             if symb.isNil():
-                print(end='')
+                print()
+            elif symb.isBool():
+                print(symb.value)
+            elif symb.isInt():
+                print(int(symb.value), end='')
             else:
+                symb.value = str(symb.value)
+                escapes = re.findall(r'\\[0-9]{3}', symb.value)
+                for escape in escapes:
+                    symb.value = symb.value.replace(escape, chr(int(escape.lstrip('\\').rstrip())))
                 print(symb.value, end='')
         elif instruction.opcode == 'CONCAT':  # CONCAT <var> <symb1> <symb2>
-            var = self.__checkVariable(instruction.getArg(0))
+            var = self.__checkVariable(instruction.getArg(0), False)
             symb1 = self.__checkVariable(instruction.getArg(1))
             symb2 = self.__checkVariable(instruction.getArg(2))
             if not symb1.isString() or not symb2.isString():
                 self.handler.terminateInterpret(53, 'Can concatenate only strings.')
             self.storage.frames.updateVar(var, str(symb1.value) + str(symb2.value), 'string')
         elif instruction.opcode == 'STRLEN':  # STRLEN <var> <symb>
-            var = self.__checkVariable(instruction.getArg(0))
+            var = self.__checkVariable(instruction.getArg(0), False)
             symb = self.__checkVariable(instruction.getArg(1))
+            if not symb.isString():
+                self.handler.terminateInterpret(53, 'Second parameter is not a string.')
             self.storage.frames.updateVar(var, len(symb.value), 'int')
         elif instruction.opcode == 'GETCHAR':  # GETCHAR <var> <symb1> <symb2>
-            var = self.__checkVariable(instruction.getArg(0))
+            var = self.__checkVariable(instruction.getArg(0), False)
             symb1 = self.__checkVariable(instruction.getArg(1))
             symb2 = self.__checkVariable(instruction.getArg(2))
             if not symb1.isString() or not symb2.isInt():
@@ -199,8 +228,8 @@ class Interpret:
             var.value = var.value[0:index] + symb2.value[0] + var.value[index+1:]
             self.storage.frames.updateVar(var, var.value, 'string')
         elif instruction.opcode == 'TYPE':  # TYPE <var> <symb>
-            var = self.__checkVariable(instruction.getArg(0))
-            symb = self.__checkVariable(instruction.getArg(1))
+            var = self.__checkVariable(instruction.getArg(0), False)
+            symb = self.__checkVariable(instruction.getArg(1), False)
             if symb.isInitialized():
                 self.storage.frames.updateVar(var, symb.type, 'string')
             else:
@@ -209,7 +238,7 @@ class Interpret:
             pass
         elif instruction.opcode == 'JUMP':  # JUMP <label>
             label = instruction.getArg(0)
-            self.order = self.ordersList.index(self.storage.labels.getOrder(label.value))
+            self.order = self.storage.labels.getOrder(label.value)
             self.execute(self.__getInstructionAt(self.order))
         elif (instruction.opcode == 'JUMPIFEQ' or
               instruction.opcode == 'JUMPIFNEQ'):  # JUMPIF(N)EQ <label> <symb1> <symb2>
@@ -217,16 +246,19 @@ class Interpret:
             symb1 = self.__checkVariable(instruction.getArg(1))
             symb2 = self.__checkVariable(instruction.getArg(2))
 
-            if symb1.type != symb2.type and (not symb1.isNil() or not symb2.isNil()):
+            if not self.storage.labels.has(label.value):
+                self.handler.terminateInterpret(52, 'Label does not exists.')
+
+            if not symb1.isNil() and not symb2.isNil() and symb1.type != symb2.type:
                 self.handler.terminateInterpret(53, "Types does not match or symbols are not 'nil'.")
             if ((instruction.opcode == 'JUMPIFEQ' and symb1.value == symb2.value) or
                     (instruction.opcode == 'JUMPIFNEQ' and symb1.value != symb2.value)):
-                self.order = self.ordersList.index(self.storage.labels.getOrder(label.value))
-                self.execute(self.__getInstructionAt(self.order))
+                order = self.storage.labels.getOrder(label.value)
+                self.execute(self.__getInstructionAt(order, True))
         elif instruction.opcode == 'EXIT':  # EXIT <symb>
             symb = self.__checkVariable(instruction.getArg(0))
             if not symb.isInt():
-                self.handler.terminateInterpret(57, 'Excepted int.')
+                self.handler.terminateInterpret(53, 'Excepted int.')
             symb.value = int(symb.value)
             if not (0 <= symb.value <= 49):
                 self.handler.terminateInterpret(57, 'Invalid exit code value (excepted range: 0-49).')
@@ -241,14 +273,8 @@ class Interpret:
                     "============================="
             print(stats, file=sys.stderr)
 
-        # Check for last instruction
-        if instruction.order == self.ordersList[-1]:
-            self.handler.terminateProgram(0, 'Interpret done')
-
-        # Check for order
-        self.order += 1
-        if self.order < len(self.ordersList):
-            self.execute(self.__getInstructionAt(self.order))
+        # Execute next instruction
+        self.execute(self.__getInstructionAt(self.order, True))
 
     def __getNodes(self, source):
         """
@@ -263,6 +289,25 @@ class Interpret:
             return tree
         except Exception as exception:
             self.handler.terminateProgram(31, 'XML Error: ' + str(exception))
+
+    @staticmethod
+    def __getInputs(source) -> list or None:
+        inputs = None
+
+        if not source:
+            return inputs
+
+        inputs = list()
+
+        if isinstance(source, io.TextIOWrapper):
+            for line in source:
+                inputs.append(line)
+            return inputs
+
+        file = open(source)
+        for line in file:
+            inputs.append(line)
+        return inputs
 
     def __collectInstructions(self, tree) -> tuple:
         """
@@ -302,14 +347,18 @@ class Interpret:
         instruction = Instruction()
 
         instruction.setOrder(instructionNode.getAttribute('order'))
-        instruction.setOpcode(instructionNode.getAttribute('opcode'))
+        instruction.setOpcode(instructionNode.getAttribute('opcode').upper())
+
+        # Sort arguments
+        argNodes = [x for x in argNodes if x.nodeType == 1]
+        argNodes.sort(key=lambda x: x.tagName)
 
         # Set arguments
         for argument in argNodes:
             if argument.nodeType == 1:  # Get only elements
                 instruction.setArg(
                     argument.getAttribute('type'),
-                    argument.childNodes[0].nodeValue
+                    argument.childNodes[0].nodeValue if argument.hasChildNodes() else ''
                 )
 
         # Register labels
@@ -320,33 +369,72 @@ class Interpret:
 
         return instruction
 
-    def __getInstructionAt(self, index) -> Instruction:
+    def __getInstructionAt(self, order, nextInstruction=False) -> Instruction:
         """
         Gets an instruction at orderList's index.
 
-        :param index: The index of orderList
+        :param order: The order of instruction
         :return: Instance of instruction
         """
-        if index >= len(self.ordersList):
-            self.handler.terminateProgram(99, 'Instruction order not found.')
-        order = self.ordersList[index]
-        for item in self.instructions:
-            if item.order == order:
-                return item
-        return self.handler.terminateProgram(99, 'Instruction order not found.')
+        index = None
+        for i in range(len(self.ordersList)):
+            if order == self.ordersList[i]:
+                index = i
+                break
 
-    def __checkVariable(self, var: Argument) -> Argument or Variable:
+        # Instruction not found
+        if index is None:
+            self.handler.terminateProgram(99, 'Instruction at order '+str(index)+' not found.')
+
+        # If returned find next order
+        if nextInstruction:
+            index += 1
+
+        # If no next index that means we are done.
+        if index >= len(self.instructions):
+            self.handler.terminateProgram(0, 'Interpret done.')
+
+        self.order = self.instructions[index].order
+
+        return self.instructions[index]
+
+    def __checkVariable(self, var: Argument, initRequired=True) -> Argument or Variable:
         """
         Checks a variable.
 
-        :param var:
+        :param var: Variable that is checked
         :return: If it is a variable return variable from storage otherwise return it back.
         """
+        if var.isVar() and not self.storage.frames.has(var.frame):
+            self.handler.terminateInterpret(55, 'Frame ' + var.frame + ' is not set')
         if var.isVar() and not self.storage.frames.hasVar(var):
-            self.handler.terminateInterpret(52, 'Undefined variable <' + var.value + ':' + var.type + '>')
+            self.handler.terminateInterpret(54, 'Undefined variable <' + var.value + ':' + var.type + '>')
         if var.isVar():
-            return self.storage.frames.getVar(var)
+            variable = self.storage.frames.getVar(var)
+            if initRequired and not variable.isInitialized():
+                self.handler.terminateInterpret(56, "Variable '" + var.value + "' is not initialized")
+            return variable
+        if var.isInt():
+            var.value = int(var.value)
+            return var
+        if var.isString():
+            # If string parse regex
+            var.value = self.__stringEscapesCheck(var.value)
         return var
+
+    @staticmethod
+    def __stringEscapesCheck(string):
+        """
+        Checks string for escape characters.
+
+        :param string: The checked string
+        :return: String with removed escape sequences.
+        """
+        string = str(string)
+        escapes = re.findall(r'\\[0-9]{3}', string)
+        for escape in escapes:
+            string = string.replace(escape, chr(int(escape.lstrip('\\'))))
+        return string
 
     def __initializeArithmeticOperation(self, instruction: Instruction) -> tuple:
         """
@@ -355,7 +443,7 @@ class Interpret:
         :param instruction: Arithmetic instruction
         :return: Initialized operands for arithmetic operations.
         """
-        var = self.__checkVariable(instruction.getArg(0))
+        var = self.__checkVariable(instruction.getArg(0), False)
         symb1 = self.__checkVariable(instruction.getArg(1))
         symb2 = self.__checkVariable(instruction.getArg(2))
         if not symb1.isInt() or not symb2.isInt():
@@ -369,10 +457,10 @@ class Interpret:
         :param instruction: Relation instruction
         :return: Initialized operands for relation operations.
         """
-        var = self.__checkVariable(instruction.getArg(0))
+        var = self.__checkVariable(instruction.getArg(0), False)
         symb1 = self.__checkVariable(instruction.getArg(1))
         symb2 = self.__checkVariable(instruction.getArg(2))
-        if symb1.type != symb2.type:
+        if symb1.type != symb2.type or (symb1.isNil() or symb2.isNil()):
             self.handler.terminateInterpret(53, 'Types of operands do not match ' + symb1.type + ' != ' + symb2.type)
         if not symb1.isRelationValid() or not symb2.isRelationValid():
             self.handler.terminateInterpret(53, 'Not valid types <' + symb1.type + ':symb1> <' + symb2.type + ':symb2>')
@@ -385,7 +473,7 @@ class Interpret:
         :param instruction: Boolean instruction
         :return: Initialized operands for boolean operations.
         """
-        var = self.__checkVariable(instruction.getArg(0))
+        var = self.__checkVariable(instruction.getArg(0), False)
         symb1 = self.__checkVariable(instruction.getArg(1))
         symb2 = self.__checkVariable(instruction.getArg(2)) if len(instruction.args) > 2 else None
         if not symb1.isBool() or (symb2 and not symb2.isBool()):
