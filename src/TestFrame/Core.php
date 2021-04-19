@@ -16,7 +16,7 @@ class Core
      * @var string Set the php CLI
      * @todo: Default php7.4
      */
-    private string $phpCLI = "php.7.4";
+    private string $phpCLI = "php7.4";
 
     /**
      * @var string Set the python CLI
