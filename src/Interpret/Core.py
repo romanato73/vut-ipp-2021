@@ -292,6 +292,12 @@ class Interpret:
 
     @staticmethod
     def __getInputs(source) -> list or None:
+        """
+        Collect inputs into a list.
+
+        :param source: Source file of inputs
+        :return: List of input data or None if non provided.
+        """
         inputs = None
 
         if not source:

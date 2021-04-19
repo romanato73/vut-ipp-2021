@@ -18,7 +18,7 @@ class Exception extends \Exception
     {
         parent::__construct($message, $code, $previous);
 
-        $this->codes = json_decode(file_get_contents('src/Support/errors.json'), true);
+        $this->codes = json_decode(file_get_contents('src/Support/api/errors.json'), true);
     }
 
     /**
